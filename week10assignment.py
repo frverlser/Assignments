@@ -26,8 +26,9 @@ transaction_list = [
     "05-Oct/Food/8.75"
 ]
 
-grouped = group_expenses(transaction_list)
-summary = summarize_budget(grouped)
+group = group_expenses(transaction_list)
+summary = summarize_budget(group)
 
 for category, total in summary.items():
     print(f"{category} : ${total:.2f} total")
+
