@@ -1,47 +1,87 @@
-servers = ["db-01", "app-01", "web-01", "cache-01"]
-usages = [12.5, 88.0, 75.5, 15.0]
-def update_cpu_usage(servers, usages, server_id, new_usage):
-    for i in range(len(servers)):
-        if servers[i] == server_id:
-            usages[i] = new_usage
-            print(usages)
-            return True
-    return False
+from abc import ABC, abstractmethod
 
-def decommission_idle_servers(servers, usages, idle_threshold):
-    relevant_usage  = []
-    relevant_server = []
-    for i in range(len(servers)):
-        if usages[i] >= idle_threshold:
-            relevant_usage.append(usages[i])
-            relevant_server.append(servers[i])
-    servers[:] = relevant_server
-    usages[:] = relevant_usage
-def flag_server_load(servers, usages, high_load_threshold):
-    high_load = []
-    normal_load = []
-    for i in range(len(servers)):
-        if usages[i] >= high_load_threshold:
-            high_load.append(servers[i])
-        else:
-            normal_load.append(servers[i])
-    return high_load, normal_load
+class Calculator(ABC):
+    def __init__(self, name):
+        self.name = name 
+    @abstractmethod
+    def compute(self, value):
+        pass
+    def describe(self, value):
+        return f"{self.name}: {value} -> {self.compute(value)}"
 
-def analyze_server_health(initial_servers, initial_usages, server_to_update, decommission_threshold, high_load_threshold):
-    server_id, new_usage = server_to_update
-    update_cpu_usage(initial_servers, initial_usages, server_id, new_usage)
-    decommission_idle_servers(initial_servers, initial_usages, decommission_threshold)
-    high_load, normal_load = flag_server_load(initial_servers, initial_usages, high_load_threshold)
-    return high_load, normal_load
+class CaloriesToKilojoules(Calculator):
+    def __init__(self):
+        super().__init__("CaloriesToKilojoules")
+    def compute(self, value):
+        return round(value * 4.184, 2)
+class GramsToOunces(Calculator):
+    def __init__(self):
+        super().__init__("GramsToOunces")
+    def compute(self, value):
+        return round(value * 0.035274, 2)
+class CupsToMilliliters(Calculator):
+    def __init__(self):
+        super().__init__("CupsToMilliliters")
+    def compute(self, value):
+        return round(value * 236.588, 2)
+class CustomCalculator:
+    def __init__(self, name, factor):
+        self.name = name
+        self.factor = factor
+    def compute(self, value):
+        return round(value * self.factor, 2)
+    def describe(self, value):
+        return f"{self.name}: {value} -> {self.compute(value)}"
+class CalculationLog:
+    def __init__(self):
+        self.entries = []
 
+    def record(self, calc_name, original, computed):
+        result = f"{calc_name}: {original} -> {computed}"
+        self.entries.append(result)
+        return result
 
-# Test Case 1
-servers = ["db-01", "app-01", "web-01", "cache-01"]
-usages = [12.5, 88.0, 75.5, 15.0]
-update_info = ["db-01", 14.0]
-idle_max_usage = 18.0
-high_load_min_usage = 80.0
+    def show(self):
+        for entry in self.entries:
+            print(entry)
+class NutritionLab:
+    def __init__(self, name):
+        self.name = name
+        self.calculators = []
+        self.log = CalculationLog()
+class NutritionLab:
+    def __init__(self, name):
+        self.name = name
+        self.calculators = []
+        self.log = CalculationLog()
 
-high_load, normal_load = analyze_server_health(servers, usages, update_info, idle_max_usage, high_load_min_usage)
-print(f"high_load: {high_load}")
-print(f"normal_load: {normal_load}")
+    def add_calculator(self, calculator):
+        self.calculators.append(calculator)
+
+    def compute_all(self, value):
+        print(f"=== {self.name} ===")
+        for calc in self.calculators:
+            result = calc.compute(value)
+            print(f"{calc.name}: {value} -> {result}")
+            self.log.record(calc.name, value, result)
+
+    def show_log(self):
+        print(f"--- Log for {self.name} ---")
+        self.log.show()
+
+lab = NutritionLab('Diet Clinic')
+lab.add_calculator(CaloriesToKilojoules())
+lab.add_calculator(GramsToOunces())
+lab.add_calculator(CupsToMilliliters())
+lab.add_calculator(CustomCalculator('TspsToMl', 4.929))
+
+lab.compute_all(500)
+print()
+lab.compute_all(120)
+print()
+lab.show_log()
+
+try:
+    c = Calculator('test')
+except TypeError:
+    print('Cannot instantiate abstract class')
