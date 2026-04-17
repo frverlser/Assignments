@@ -1,47 +1,60 @@
-def calculate_bid(bid_text):
-    texts = bid_text.split("\n")
-    subtotal = 0
-    fee_rate = 0
-    deposit = 0
-    for text in texts:
-        if "hrs at" in text:
-            part = text.split()
+from dataclasses import dataclass, field
 
-            hours = float(part[2])          
-            rate = float((part[5]).replace("$","").replace("/hr",""))     
+@dataclass
+class Tool:
+    name: str
+    rate: float
+    hours: int
+    def cost(self):
+        return round(self.rate * self.hours, 2)
+@dataclass
+class Workshop:
+    name: str
+    tools: list = field(default_factory=list)
+    total_cost: float = field(init=False)
+    def __post_init__(self):
+        self._refresh()
+    def _refresh(self):
+        self.total_cost = round(sum(tool.cost() for tool in self.tools), 2)
+    def add_tool(self, tool):
+        self.tools.append(tool)
+        self._refresh()
+    def use(self, tool_name, hrs):
+        for tool in self.tools:
+            if tool.name == tool_name and tool.hours >= hrs:
+                tool.hours -= hrs
+                self._refresh()
+                return True
+            if tool.name == tool_name:
+                return False
+        return False
 
-            subtotal = subtotal + hours * rate
+    def extend(self, tool_name, hrs):
+        for tool in self.tools:
+            if tool.name == tool_name:
+                tool.hours += hrs
+                self._refresh()
+                return
 
-        if text[:4] == "FEE:":
-            fee_str = text.split()[1] 
-            fee_num = fee_str.replace("%","")
-            fee_rate = float(fee_num) / 100
+    def report(self):
+        result = f"{self.name} Rentals:\n"
+        for tool in self.tools:
+            result += f"  {tool.name}: {tool.hours} hrs @ ${tool.rate}/hr\n"
+        result += f"Total cost: ${self.total_cost}"
+        return result
+    
+    
+t1 = Tool("Drill", 18.50, 12)
+t2 = Tool("Saw", 25.99, 8)
+t3 = Tool("Sander", 12.75, 20)
 
-        if text[:8] == "DEPOSIT:":
-            deposit_str = text.split()[1]
-            deposit_num = deposit_str.replace("$","")
-            deposit = float(deposit_num)
-    total = (subtotal - deposit) * (1 + fee_rate)
-    return f"${total:.2f}"
+w = Workshop("BuildRight")
+w.add_tool(t1)
+w.add_tool(t2)
+w.add_tool(t3)
 
-
-
-    # Test Case 1: Standard bid
-bid1 = """Framing -> 10 hrs at $50.00/hr
-Wiring -> 5 hrs at $80.00/hr
-FEE: 10%
-DEPOSIT: $100.00"""
-print(calculate_bid(bid1))
-
-# Test Case 2: No deposit
-bid2 = """Plumbing -> 2 hrs at $100.00/hr
-Cleanup -> 1 hrs at $20.00/hr
-FEE: 5%"""
-print(calculate_bid(bid2))
-
-# Test Case 3: Deposit, no fee
-bid3 = """Painting -> 4 hrs at $25.00/hr
-Sanding -> 2 hrs at $15.00/hr
-DEPOSIT: $30.00
-FEE: 0%"""
-print(calculate_bid(bid3))
+print(w.total_cost)
+print(w.use("Drill", 4))
+print(w.use("Drill", 15))
+w.extend("Sander", 10)
+print(w.report())
