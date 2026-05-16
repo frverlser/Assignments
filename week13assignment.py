@@ -1,43 +1,63 @@
-import requests
+from abc import ABC, abstractmethod
 
-def get_data(artist, title):
-    url = f"https://api.lyrics.ovh/v1/{artist}/{title}"
-    try:
-        response = requests.get(url)
-        if response.status_code == 200:
-            return response.json()
-        else:
-            print("\nLyrics not found or API error.")
-    except:
-        print("\nSomething went wrong. Please check your internet or input.")
-    return None
 
-def process_data(data):
-    if data and 'lyrics' in data:
-        return data['lyrics']
-    return None
+class Package(ABC):
+    def __init__(self, subscriber):
+        self.subscriber = subscriber
+    @abstractmethod
+    def amount(self):
+        pass
+class Small(Package):  
+    def amount(self):
+        return 10000
+class Medium(Package):
+    def amount(self):
+        return 30000
+class Large(Package):
+    def amount(self):
+        return 70000
 
-def display_data():
-    while True:
-        artist = input("Enter artist name: ").strip()
-        title = input("\nEnter song title: ").strip()
-        if not artist:
-            print("\nArtist name cannot be empty. Please try again.")
-            continue
-        if not title:
-            print("\nSong title cannot be empty. Please try again.")
-            continue
-        break
+class TopupService:
+    def __init__(self):
+        self.topups = []  
+    def add(self, package: Package):
+        return self.topups.append(package)
+    def run(self, receipt, confirmation):
+        receipt.write(self.topups)
+        confirmation.confirm(self.topups)
 
-    data = get_data(artist, title)
-    lyrics = process_data(data)
+class Receipt(ABC):
+    @abstractmethod
+    def write(self, topups):
+        pass
 
-    if data and 'lyrics' in data:
-        lyrics = data['lyrics']
-        print("\n--- Lyrics Found! ---\n")
-        print(lyrics)
+class TextReceipt(Receipt):
+    def write(self, topups):
+        for topup in topups:
+            print(f"RECEIPT: {topup.subscriber} +{topup.amount()}")
 
-        with open("your_lyrics.txt", "a") as f:
-            f.write(f"\n{artist} - {title}\n=======================\n{lyrics}\n\n\n")
+class Confirmation(ABC):
+    @abstractmethod
+    def confirm(self, topups):
+        pass
 
-display_data()
+class SmsConfirmation(Confirmation):
+    def confirm(self, topups):
+        for topup in topups:
+            print(f"[SMS → {topup.subscriber}] Top-up of {topup.amount()} so'm successful")
+
+
+carrier = TopupService()
+carrier.add(Small("Peter"))
+carrier.add(Medium("Natasha"))
+carrier.add(Large("Bruce"))
+
+carrier.run(TextReceipt(), SmsConfirmation())
+
+
+# RECEIPT: Peter +10000
+# RECEIPT: Natasha +30000
+# RECEIPT: Bruce +70000
+# [SMS → Peter] Top-up of 10000 so'm successful
+# [SMS → Natasha] Top-up of 30000 so'm successful
+# [SMS → Bruce] Top-up of 70000 so'm successful
